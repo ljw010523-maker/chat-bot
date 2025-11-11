@@ -1,0 +1,22 @@
+paths:
+  raw_dir: "data/raw"
+  interim_dir: "data/interim"
+  processed_dir: "data/processed"
+  chunks_dir: "data/chunks"
+  reports_dir: "reports"
+
+ingest:
+  enable_auto_ocr: true
+  ocr_lang: "kor+eng"
+  searchable_min_chars: 50
+  probe_pages: 3
+  dpi: 300
+
+clean:
+  drop_header_footer: true
+  hyphen_fix: true
+  join_bullets: true
+
+chunk:
+  size: 800
+  overlap: 120
