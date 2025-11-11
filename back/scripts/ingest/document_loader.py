@@ -6,7 +6,6 @@
 from pathlib import Path
 from typing import List, Dict
 import platform
-import re
 
 # PDF
 import PyPDF2
@@ -76,6 +75,9 @@ try:
 except ImportError:
     VLM_AVAILABLE = False
 
+# 텍스트 정제
+from back.scripts.clean.text_cleaner import TextCleaner
+
 # Tesseract/Poppler 경로 (Windows)
 if platform.system() == "Windows":
     # Tesseract OCR 비활성화
@@ -99,6 +101,7 @@ class UniversalDocumentLoader:
     def __init__(self, config):
         self.config = config
         self.ocr_dpi = getattr(config, "ocr_dpi", 300)
+        self.text_cleaner = TextCleaner()  # 텍스트 정제기 초기화
         self._print_capabilities()
 
     def _print_capabilities(self):
@@ -245,7 +248,7 @@ class UniversalDocumentLoader:
                             method = "pdf_ocr"
                         else:
                             # 텍스트 후처리 적용
-                            text = self._postprocess_ocr_text(text)
+                            text = self.text_cleaner.clean_ocr_text(text)
                             method = "pdf_text"
 
                         pages_data.append(
@@ -300,7 +303,7 @@ class UniversalDocumentLoader:
                     ).strip()
 
                     # 후처리
-                    text = self._postprocess_ocr_text(text)
+                    text = self.text_cleaner.clean_ocr_text(text)
 
                     print(f"✓ ({len(text)}자)")
 
@@ -344,7 +347,7 @@ class UniversalDocumentLoader:
                 ).strip()
 
                 # 후처리
-                text = self._postprocess_ocr_text(text)
+                text = self.text_cleaner.clean_ocr_text(text)
 
                 return text
             return ""
@@ -377,7 +380,7 @@ class UniversalDocumentLoader:
                 return []
 
             # 후처리 적용
-            text = self._postprocess_ocr_text(text)
+            text = self.text_cleaner.clean_ocr_text(text)
 
             return [{"page_num": 1, "text": text, "method": "txt"}]
 
@@ -416,7 +419,7 @@ class UniversalDocumentLoader:
                 all_text += "\n\n[표 데이터]\n" + "\n".join(tables_text)
 
             # 후처리 추가
-            all_text = self._postprocess_ocr_text(all_text)
+            all_text = self.text_cleaner.clean_ocr_text(all_text)
 
             print(f"  ✓ Word (.docx) 읽기 완료 ({len(all_text)}자)")
 
@@ -457,7 +460,7 @@ class UniversalDocumentLoader:
             pythoncom.CoUninitialize()
 
             # 후처리 추가
-            text = self._postprocess_ocr_text(text)
+            text = self.text_cleaner.clean_ocr_text(text)
 
             print(f"  ✓ Word (.doc) 읽기 완료 ({len(text)}자)")
 
@@ -494,7 +497,7 @@ class UniversalDocumentLoader:
                 slide_text = "\n".join(texts)
 
                 # 후처리 추가
-                slide_text = self._postprocess_ocr_text(slide_text)
+                slide_text = self.text_cleaner.clean_ocr_text(slide_text)
 
                 pages_data.append(
                     {"page_num": slide_num, "text": slide_text, "method": "pptx"}
@@ -545,7 +548,7 @@ class UniversalDocumentLoader:
                 slide_text = "\n".join(texts)
 
                 # 후처리 추가
-                slide_text = self._postprocess_ocr_text(slide_text)
+                slide_text = self.text_cleaner.clean_ocr_text(slide_text)
 
                 pages_data.append(
                     {"page_num": slide_num, "text": slide_text, "method": "ppt_legacy"}
@@ -593,7 +596,7 @@ class UniversalDocumentLoader:
                 sheet_text = f"[시트: {sheet_name}]\n" + "\n".join(rows_text)
 
                 # 후처리 추가
-                sheet_text = self._postprocess_ocr_text(sheet_text)
+                sheet_text = self.text_cleaner.clean_ocr_text(sheet_text)
 
                 pages_data.append(
                     {"page_num": sheet_num, "text": sheet_text, "method": "xlsx"}
@@ -647,7 +650,7 @@ class UniversalDocumentLoader:
                 sheet_text = f"[시트: {sheet.Name}]\n" + "\n".join(rows_text)
 
                 # 후처리 추가
-                sheet_text = self._postprocess_ocr_text(sheet_text)
+                sheet_text = self.text_cleaner.clean_ocr_text(sheet_text)
 
                 pages_data.append(
                     {"page_num": sheet_num, "text": sheet_text, "method": "xls_legacy"}
@@ -694,7 +697,7 @@ class UniversalDocumentLoader:
             csv_text = df.to_string(index=False)
 
             # 후처리 추가
-            csv_text = self._postprocess_ocr_text(csv_text)
+            csv_text = self.text_cleaner.clean_ocr_text(csv_text)
 
             return [{"page_num": 1, "text": csv_text, "method": "csv"}]
 
@@ -724,7 +727,7 @@ class UniversalDocumentLoader:
             full_text = "\n\n".join([str(el) for el in elements])
 
             # 후처리
-            full_text = self._postprocess_ocr_text(full_text)
+            full_text = self.text_cleaner.clean_ocr_text(full_text)
 
             print(f"  ✅ Unstructured 파싱 완료 ({len(full_text)}자, {len(elements)}개 요소)")
 
@@ -770,7 +773,7 @@ class UniversalDocumentLoader:
                 text = doc.page_content.strip()
 
                 # 노이즈 제거
-                text = self._postprocess_ocr_text(text)
+                text = self.text_cleaner.clean_ocr_text(text)
 
                 pages_data.append(
                     {"page_num": idx, "text": text, "method": "vlm_ocr"}
@@ -1039,7 +1042,7 @@ class UniversalDocumentLoader:
 
                     if texts:
                         full_text = "\n\n".join(texts)
-                        full_text = self._postprocess_ocr_text(full_text)
+                        full_text = self.text_cleaner.clean_ocr_text(full_text)
                         olefile_text_length = len(full_text)
                         olefile_result = [{"page_num": 1, "text": full_text, "method": "hwp_prvtext"}]
                         print(f"  ✅ olefile 추출 완료 ({olefile_text_length}자)")
@@ -1182,7 +1185,7 @@ class UniversalDocumentLoader:
                 return []
 
             full_text = "\n".join(texts)
-            full_text = self._postprocess_ocr_text(full_text)
+            full_text = self.text_cleaner.clean_ocr_text(full_text)
 
             print(f"  ✓ HWPX 읽기 완료 (ZIP XML 폴백, {len(full_text)}자)")
             return [{"page_num": 1, "text": full_text, "method": "hwpx_xml"}]
@@ -1210,7 +1213,7 @@ class UniversalDocumentLoader:
             ).strip()
 
             # 후처리 추가
-            text = self._postprocess_ocr_text(text)
+            text = self.text_cleaner.clean_ocr_text(text)
 
             print(f"  ✓ OCR 완료 ({len(text)}자)")
 
@@ -1243,81 +1246,3 @@ class UniversalDocumentLoader:
 
         return image
 
-    def _postprocess_ocr_text(self, text: str) -> str:
-        """OCR 텍스트 후처리 (동적 노이즈 감지)"""
-        if not text:
-            return ""
-
-        lines = text.split("\n")
-        cleaned_lines = []
-
-        for line in lines:
-            line = line.strip()
-
-            # 1. 빈 라인 제거
-            if not line:
-                continue
-
-            # 2. 너무 짧은 라인 (2자 미만)
-            if len(line) < 2:
-                continue
-
-            # 3. 특수문자만으로 구성된 라인
-            if re.match(r"^[^\w가-힣]+$", line):
-                continue
-
-            # 4. 의미있는 문자 비율 체크
-            total_chars = len(line)
-            meaningful_chars = sum(1 for c in line if c.isalnum() or "가" <= c <= "힣")
-
-            # 의미있는 문자가 30% 미만이면 노이즈
-            if total_chars > 0 and meaningful_chars / total_chars < 0.3:
-                continue
-
-            # 5. 짧은 라인의 추가 검증 (10자 미만)
-            if len(line) < 10:
-                # 한글 또는 영문이 최소 3자 이상 있어야 함
-                korean_count = sum(1 for c in line if "가" <= c <= "힣")
-                english_count = sum(1 for c in line if "a" <= c.lower() <= "z")
-
-                if korean_count + english_count < 3:
-                    continue
-
-                # 숫자와 특수문자만 있는 경우 (예: "| 00 |")
-                digit_special = sum(1 for c in line if c.isdigit() or not c.isalnum())
-                if digit_special > len(line) * 0.7:
-                    continue
-
-            # 6. 반복되는 특수문자 패턴 제거
-            if re.search(r"(.)\1{2,}", line) and not line[0].isalnum():
-                continue
-
-            # 7. 자음/모음만 있는 한글 제거
-            jaeum_moeum = "ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎㅏㅑㅓㅕㅗㅛㅜㅠㅡㅣㅐㅔ"
-            jaeum_moeum_count = sum(1 for c in line if c in jaeum_moeum)
-
-            # 자음/모음이 전체의 20% 이상이면 노이즈
-            if jaeum_moeum_count > len(line) * 0.2:
-                continue
-
-            # 8. 이상한 영문 패턴 제거
-            english_only = "".join(c for c in line if "a" <= c.lower() <= "z")
-            if english_only and len(english_only) >= 4:
-                vowels = sum(1 for c in english_only.lower() if c in "aeiou")
-
-                if len(english_only) > 0:
-                    vowel_ratio = vowels / len(english_only)
-                    if vowel_ratio < 0.15 or vowel_ratio > 0.85:
-                        if len(english_only) < 8:
-                            continue
-
-            # 9. 연속된 공백 정리
-            line = re.sub(r"\s+", " ", line)
-
-            # 10. 표 구분선 통일
-            if re.match(r"^[\-=_]{3,}$", line):
-                line = "─" * 40
-
-            cleaned_lines.append(line)
-
-        return "\n".join(cleaned_lines)
