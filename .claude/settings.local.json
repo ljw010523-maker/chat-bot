@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python -c \"import json; data = json.load(open(''data/chunks/[회계팀] 경영손익모듈(손익보고) 관련 시스템 수정 요청_pdf_chunks.json'', ''r'', encoding=''utf-8'')); print(f''추출 글자: {data[\"\"total_characters\"\"]}자''); print(f''방법: {data[\"\"processing_info\"\"][\"\"methods_used\"\"]}''); print(''\\n내용:''); print(data[''chunks''][0][''text''])\")"
-    ],
-    "deny": [],
-    "ask": []
-  }
-}
