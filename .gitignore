@@ -207,13 +207,18 @@ marimo/_lsp/
 __marimo__/
 
 # ============================================
-# 프로젝트별 제외 항목 (Document Processing Pipeline)
+# 프로젝트별 제외 항목 (RAG Chatbot System)
 # ============================================
 # Claude Code 설정 (개인 설정 파일)
 .claude/
 
-# 데이터 파일
-data/
+# 데이터 폴더 (문서, 벡터 DB, 임베딩)
+data/raw/
+data/chunks/
+data/embeddings/
+data/chroma_db/
+
+# 원본 문서 파일
 *.hwp
 *.hwpx
 *.pdf
@@ -229,3 +234,7 @@ data/
 *.tmp
 .DS_Store
 Thumbs.db
+
+# 벡터 임베딩 파일
+*.npz
+*.npy

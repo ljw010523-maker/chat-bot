@@ -46,6 +46,24 @@ langdetect
 spacy
 
 # ============================================
+# 벡터 임베딩
+# ============================================
+sentence-transformers
+
+# ============================================
+# LangChain & LangGraph (RAG)
+# ============================================
+langchain-core
+langchain-chroma
+langchain-groq
+langchain-google-genai
+langchain-openai
+langchain-anthropic
+langgraph
+chromadb
+python-dotenv
+
+# ============================================
 # 기타
 # ============================================
 requests
